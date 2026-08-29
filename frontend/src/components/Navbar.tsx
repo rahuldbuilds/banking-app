@@ -5,7 +5,8 @@ import {
   Moon,
   ShieldCheck,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  LogOut
 } from 'lucide-react';
 import type { LoginResponse } from '../types';
 
@@ -16,6 +17,7 @@ interface NavbarProps {
   setUserRole: (role: 'ADMIN' | 'STAFF' | 'LOAN_OFFICER' | 'CUSTOMER') => void;
   isMock: boolean;
   toggleMock: () => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -24,7 +26,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   user,
   setUserRole,
   isMock,
-  toggleMock
+  toggleMock,
+  onLogout
 }) => {
   return (
     <header style={{
@@ -173,6 +176,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span style={{ fontSize: '0.68rem', color: 'var(--primary)', fontWeight: 600 }}>{user.role}</span>
           </div>
         </div>
+
+        {/* Logout Button */}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            style={{
+              background: 'rgba(244, 63, 94, 0.12)',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              color: '#f87171',
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+            title="Sign Out Session"
+          >
+            <LogOut size={18} />
+          </button>
+        )}
       </div>
     </header>
   );

@@ -9,6 +9,7 @@ import { BeneficiariesView } from './components/BeneficiariesView';
 import { LoansView } from './components/LoansView';
 import { CustomerKycView } from './components/CustomerKycView';
 import { TransactionsView } from './components/TransactionsView';
+import { LoginView } from './components/LoginView';
 
 import { apiService, getMockMode, setMockMode } from './services/api';
 import type {
@@ -26,12 +27,8 @@ export function App() {
   const [activeTab, setActiveTab] = useState<ViewTab>('overview');
   const [isMock, setIsMock] = useState<boolean>(getMockMode());
 
-  // User Auth State
-  const [user, setUser] = useState<LoginResponse>({
-    username: 'Rahul Yadav',
-    role: 'ADMIN',
-    message: 'Active Session'
-  });
+  // User Auth State - null means unauthenticated
+  const [user, setUser] = useState<LoginResponse | null>(null);
 
   // Data States
   const [accounts, setAccounts] = useState<AccountDto[]>([]);
@@ -39,7 +36,7 @@ export function App() {
   const [transactions, setTransactions] = useState<TransactionDto[]>([]);
   const [beneficiaries, setBeneficiaries] = useState<BeneficiaryDto[]>([]);
   const [loans, setLoans] = useState<LoanDto[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Modal State
   const [depositWithdrawModal, setDepositWithdrawModal] = useState<{
@@ -48,44 +45,65 @@ export function App() {
     accNum?: string;
   }>({ isOpen: false, type: 'DEPOSIT' });
 
-  // Initial Load
+  // Initial Load when User is Logged In
   const loadData = async () => {
+    if (!user && !isMock) return;
     setIsLoading(true);
     try {
-      const [accList, cust, txs, ben, ln] = await Promise.all([
+      // 1. Fetch Accounts & Customers first
+      const [accList, cust] = await Promise.all([
         apiService.getAllAccounts(),
-        apiService.getCustomers(),
-        apiService.getTransactions('ACC100098231'),
-        apiService.getBeneficiaries(101),
-        apiService.getLoansForAccount(101)
+        apiService.getCustomers()
       ]);
       setAccounts(accList);
       setCustomers(cust);
+
+      // 2. Fetch account-specific data using first account if available
+      const firstAccNum = accList[0]?.accountNumber || 'ACC100098231';
+      const firstAccId = accList[0]?.id || 101;
+
+      const [txs, ben, ln] = await Promise.all([
+        apiService.getTransactions(firstAccNum).catch(() => []),
+        apiService.getBeneficiaries(firstAccId).catch(() => []),
+        apiService.getLoansForAccount(firstAccId).catch(() => [])
+      ]);
+
       setTransactions(txs);
       setBeneficiaries(ben);
       setLoans(ln);
     } catch (e) {
-      console.warn('Backend API connection failed, switching to demo mock mode', e);
-      setMockMode(true);
-      setIsMock(true);
-      const accList = await apiService.getAllAccounts();
-      const cust = await apiService.getCustomers();
-      const txs = await apiService.getTransactions('ACC100098231');
-      const ben = await apiService.getBeneficiaries(101);
-      const ln = await apiService.getLoansForAccount(101);
-      setAccounts(accList);
-      setCustomers(cust);
-      setTransactions(txs);
-      setBeneficiaries(ben);
-      setLoans(ln);
+      console.warn('Backend API fetch error, switching to demo mock mode', e);
+      if (!isMock) {
+        setMockMode(true);
+        setIsMock(true);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
-  }, [isMock]);
+    if (user || isMock) {
+      loadData();
+    }
+  }, [user, isMock]);
+
+  // Login Handler
+  const handleLogin = async (username: string, password?: string): Promise<LoginResponse> => {
+    const res = await apiService.login(username, password);
+    setUser(res);
+    return res;
+  };
+
+  // Logout Handler
+  const handleLogout = async () => {
+    await apiService.logout();
+    setUser(null);
+    setAccounts([]);
+    setTransactions([]);
+    setBeneficiaries([]);
+    setLoans([]);
+  };
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -100,7 +118,9 @@ export function App() {
   };
 
   const setUserRole = (role: 'ADMIN' | 'STAFF' | 'LOAN_OFFICER' | 'CUSTOMER') => {
-    setUser(prev => ({ ...prev, role }));
+    if (user) {
+      setUser({ ...user, role });
+    }
   };
 
   // Action Handlers
@@ -162,22 +182,34 @@ export function App() {
     setCustomers(prev => [created, ...prev]);
   };
 
+  // If unauthenticated and not forcing mock mode, show Login Screen
+  if (!user && !isMock) {
+    return <LoginView onLogin={handleLogin} />;
+  }
+
+  const currentUser = user || {
+    username: 'DemoUser',
+    role: 'ADMIN',
+    message: 'Demo Session'
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
       <Navbar
         theme={theme}
         toggleTheme={toggleTheme}
-        user={user}
+        user={currentUser}
         setUserRole={setUserRole}
         isMock={isMock}
         toggleMock={toggleMock}
+        onLogout={handleLogout}
       />
 
       <div style={{ display: 'flex', flex: 1 }}>
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          userRole={user.role}
+          userRole={currentUser.role}
           onQuickDeposit={() => setDepositWithdrawModal({ isOpen: true, type: 'DEPOSIT' })}
           onQuickWithdraw={() => setDepositWithdrawModal({ isOpen: true, type: 'WITHDRAW' })}
         />
@@ -231,7 +263,7 @@ export function App() {
                 <LoansView
                   loans={loans}
                   accounts={accounts}
-                  userRole={user.role}
+                  userRole={currentUser.role}
                   onApplyLoan={handleApplyLoan}
                   onApproveLoan={handleApproveLoan}
                 />

@@ -8,7 +8,7 @@ import type {
   LoginResponse
 } from '../types';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = '/api';
 
 let mockAccounts: AccountDto[] = [
   {
@@ -140,13 +140,7 @@ async function fetchJson(url: string, options?: RequestInit) {
 
 export const apiService = {
   login: async (username: string, password?: string): Promise<LoginResponse> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        body: JSON.stringify({ username, password })
-      });
-    } catch {
-      isMockMode = true;
+    if (isMockMode) {
       const role = username.toLowerCase().includes('admin')
         ? 'ADMIN'
         : username.toLowerCase().includes('staff')
@@ -158,42 +152,45 @@ export const apiService = {
         message: 'Logged in (Demo Mode Active)'
       };
     }
+
+    try {
+      const result = await fetchJson(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify({ username, password })
+      });
+      isMockMode = false;
+      return result;
+    } catch (e: any) {
+      throw e;
+    }
   },
 
   logout: async (): Promise<string> => {
+    if (isMockMode) return 'Logged out from Demo mode';
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
       return await res.text();
     } catch {
-      return 'Logged out from Demo mode';
+      return 'Logged out';
     }
   },
 
   getAllAccounts: async (): Promise<AccountDto[]> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/accounts`);
-    } catch {
-      return [...mockAccounts];
-    }
+    if (isMockMode) return [...mockAccounts];
+    return await fetchJson(`${API_BASE_URL}/accounts`);
   },
 
   getAccountByNumber: async (accountNumber: string): Promise<AccountDto> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/accounts/${accountNumber}`);
-    } catch {
+    if (isMockMode) {
       const acc = mockAccounts.find(a => a.accountNumber === accountNumber);
       if (!acc) throw new Error('Account not found');
       return acc;
     }
+    return await fetchJson(`${API_BASE_URL}/accounts/${accountNumber}`);
   },
 
   createAccount: async (account: AccountDto): Promise<AccountDto> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/accounts`, {
-        method: 'POST',
-        body: JSON.stringify(account)
-      });
-    } catch {
+    if (isMockMode) {
       const newAcc: AccountDto = {
         ...account,
         id: Date.now(),
@@ -203,15 +200,14 @@ export const apiService = {
       mockAccounts.unshift(newAcc);
       return newAcc;
     }
+    return await fetchJson(`${API_BASE_URL}/accounts`, {
+      method: 'POST',
+      body: JSON.stringify(account)
+    });
   },
 
   deposit: async (accountNumber: string, amount: number): Promise<AccountDto> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/accounts/${accountNumber}/deposit`, {
-        method: 'PUT',
-        body: JSON.stringify({ amount })
-      });
-    } catch {
+    if (isMockMode) {
       const acc = mockAccounts.find(a => a.accountNumber === accountNumber);
       if (!acc) throw new Error('Account not found');
       acc.balance += amount;
@@ -224,15 +220,14 @@ export const apiService = {
       });
       return { ...acc };
     }
+    return await fetchJson(`${API_BASE_URL}/accounts/${accountNumber}/deposit`, {
+      method: 'PUT',
+      body: JSON.stringify({ amount })
+    });
   },
 
   withdraw: async (accountNumber: string, amount: number): Promise<AccountDto> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/accounts/${accountNumber}/withdraw`, {
-        method: 'PUT',
-        body: JSON.stringify({ amount })
-      });
-    } catch {
+    if (isMockMode) {
       const acc = mockAccounts.find(a => a.accountNumber === accountNumber);
       if (!acc) throw new Error('Account not found');
       if (acc.balance < amount) throw new Error('Insufficient account funds!');
@@ -246,141 +241,125 @@ export const apiService = {
       });
       return { ...acc };
     }
+    return await fetchJson(`${API_BASE_URL}/accounts/${accountNumber}/withdraw`, {
+      method: 'PUT',
+      body: JSON.stringify({ amount })
+    });
   },
 
   transfer: async (transferDto: TransferFundDto): Promise<string> => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/accounts/transfer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(transferDto)
+    if (isMockMode) {
+      const fromAcc = mockAccounts.find(a => a.accountNumber === transferDto.fromAccountNumber);
+      const toAcc = mockAccounts.find(a => a.accountNumber === transferDto.toAccountNumber);
+      if (!fromAcc) throw new Error('Source account invalid');
+      if (fromAcc.balance < transferDto.amount) throw new Error('Insufficient balance');
+
+      fromAcc.balance -= transferDto.amount;
+      if (toAcc) toAcc.balance += transferDto.amount;
+
+      mockTransactions.unshift({
+        id: Date.now(),
+        accountId: fromAcc.id || 101,
+        amount: transferDto.amount,
+        transactionType: 'TRANSFER',
+        timestamp: new Date().toISOString()
       });
-      if (!res.ok) throw new Error(await res.text());
-      return 'Transfer successful';
-    } catch (e: any) {
-      if (isMockMode || e.message.includes('Failed to fetch')) {
-        const fromAcc = mockAccounts.find(a => a.accountNumber === transferDto.fromAccountNumber);
-        const toAcc = mockAccounts.find(a => a.accountNumber === transferDto.toAccountNumber);
-        if (!fromAcc) throw new Error('Source account invalid');
-        if (fromAcc.balance < transferDto.amount) throw new Error('Insufficient balance');
-
-        fromAcc.balance -= transferDto.amount;
-        if (toAcc) toAcc.balance += transferDto.amount;
-
-        mockTransactions.unshift({
-          id: Date.now(),
-          accountId: fromAcc.id || 101,
-          amount: transferDto.amount,
-          transactionType: 'TRANSFER',
-          timestamp: new Date().toISOString()
-        });
-        return 'Transfer successful (Demo Mode)';
-      }
-      throw e;
+      return 'Transfer successful (Demo Mode)';
     }
+
+    const res = await fetch(`${API_BASE_URL}/accounts/transfer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(transferDto)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return 'Transfer successful';
   },
 
   getTransactions: async (accountNumber: string): Promise<TransactionDto[]> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/accounts/${accountNumber}/transactions`);
-    } catch {
-      return [...mockTransactions];
-    }
+    if (isMockMode) return [...mockTransactions];
+    return await fetchJson(`${API_BASE_URL}/accounts/${accountNumber}/transactions`);
   },
 
   deleteAccount: async (accountNumber: string): Promise<string> => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/accounts/${accountNumber}`, { method: 'DELETE' });
-      return await res.text();
-    } catch {
+    if (isMockMode) {
       mockAccounts = mockAccounts.filter(a => a.accountNumber !== accountNumber);
       return 'Account closed successfully';
     }
+    const res = await fetch(`${API_BASE_URL}/accounts/${accountNumber}`, { method: 'DELETE', credentials: 'include' });
+    return await res.text();
   },
 
   getCustomers: async (): Promise<CustomerDto[]> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/customers`);
-    } catch {
-      return [...mockCustomers];
-    }
+    if (isMockMode) return [...mockCustomers];
+    return await fetchJson(`${API_BASE_URL}/customers`);
   },
 
   createCustomer: async (customer: CustomerDto): Promise<CustomerDto> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/customers`, {
-        method: 'POST',
-        body: JSON.stringify(customer)
-      });
-    } catch {
+    if (isMockMode) {
       const newCust: CustomerDto = { ...customer, id: Date.now() };
       mockCustomers.unshift(newCust);
       return newCust;
     }
+    return await fetchJson(`${API_BASE_URL}/customers`, {
+      method: 'POST',
+      body: JSON.stringify(customer)
+    });
   },
 
   getBeneficiaries: async (accountId: number): Promise<BeneficiaryDto[]> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/beneficiaries/account/${accountId}`);
-    } catch {
-      return mockBeneficiaries.filter(b => b.accountId === accountId);
-    }
+    if (isMockMode) return mockBeneficiaries.filter(b => b.accountId === accountId);
+    return await fetchJson(`${API_BASE_URL}/beneficiaries/account/${accountId}`);
   },
 
   addBeneficiary: async (b: BeneficiaryDto): Promise<BeneficiaryDto> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/beneficiaries`, {
-        method: 'POST',
-        body: JSON.stringify(b)
-      });
-    } catch {
+    if (isMockMode) {
       const newB = { ...b, id: Date.now() };
       mockBeneficiaries.push(newB);
       return newB;
     }
+    return await fetchJson(`${API_BASE_URL}/beneficiaries`, {
+      method: 'POST',
+      body: JSON.stringify(b)
+    });
   },
 
   deleteBeneficiary: async (id: number): Promise<string> => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/beneficiaries/${id}`, { method: 'DELETE' });
-      return await res.text();
-    } catch {
+    if (isMockMode) {
       mockBeneficiaries = mockBeneficiaries.filter(b => b.id !== id);
       return 'Beneficiary removed';
     }
+    const res = await fetch(`${API_BASE_URL}/beneficiaries/${id}`, { method: 'DELETE', credentials: 'include' });
+    return await res.text();
   },
 
   getLoansForAccount: async (accountId: number): Promise<LoanDto[]> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/loans/account/${accountId}`);
-    } catch {
-      return mockLoans;
-    }
+    if (isMockMode) return mockLoans;
+    return await fetchJson(`${API_BASE_URL}/loans/account/${accountId}`);
   },
 
   applyLoan: async (loan: LoanDto): Promise<LoanDto> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/loans`, {
-        method: 'POST',
-        body: JSON.stringify(loan)
-      });
-    } catch {
+    if (isMockMode) {
       const newLoan: LoanDto = { ...loan, id: Date.now(), status: 'PENDING' };
       mockLoans.unshift(newLoan);
       return newLoan;
     }
+    return await fetchJson(`${API_BASE_URL}/loans`, {
+      method: 'POST',
+      body: JSON.stringify(loan)
+    });
   },
 
   approveLoan: async (loanId: number): Promise<LoanDto> => {
-    try {
-      return await fetchJson(`${API_BASE_URL}/loans/${loanId}/approve`, {
-        method: 'PUT'
-      });
-    } catch {
+    if (isMockMode) {
       const l = mockLoans.find(x => x.id === loanId);
       if (!l) throw new Error('Loan application not found');
       l.status = 'APPROVED';
       return { ...l };
     }
+    return await fetchJson(`${API_BASE_URL}/loans/${loanId}/approve`, {
+      method: 'PUT'
+    });
   }
 };
