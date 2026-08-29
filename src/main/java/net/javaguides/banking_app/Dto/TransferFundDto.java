@@ -1,6 +1,10 @@
 package net.javaguides.banking_app.Dto;
 
+import java.math.BigDecimal;
 
-
-public record TransferFundDto(Long fromAccountId, Long toAccountId, double amount) {
+public record TransferFundDto(
+        String fromAccountNumber,
+        String toAccountNumber,
+        BigDecimal amount
+) {
 }

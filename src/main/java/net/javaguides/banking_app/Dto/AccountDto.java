@@ -1,18 +1,17 @@
 package net.javaguides.banking_app.Dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import net.javaguides.banking_app.enums.AccountStatus;
 
-//@Data
-//@AllArgsConstructor
-//public class AccountDto {
+import java.math.BigDecimal;
 
-    //private Long id;
-    //private String accountHolderName;
-  //  private double balance;
+public record AccountDto(
+        Long id,
+        String accountNumber,
+        String accountHolderName,
+        BigDecimal balance,
 
-
-//}
-
-public record AccountDto(Long id, String accountHolderName, double balance, Long customerId, String accountType, String signatureImage) {
+        String accountType,
+        String signatureImage,
+        AccountStatus status
+) {
 }

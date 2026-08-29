@@ -5,27 +5,36 @@ import net.javaguides.banking_app.entity.Account;
 
 public class AccountMapper {
 
-    public static Account mapToAccount(AccountDto accountDto){
+    public static Account mapToAccount(AccountDto accountDto) {
+
         Account account = new Account(
-            accountDto.id(),
-            accountDto.accountHolderName(),
-            accountDto.balance(),
-            accountDto.customerId(),
-            accountDto.accountType(),
-            accountDto.signatureImage()
+                accountDto.id(),
+                accountDto.accountNumber(),
+                accountDto.accountHolderName(),
+                accountDto.balance(),
+
+                accountDto.accountType(),
+                accountDto.signatureImage(),
+                accountDto.status()
         );
+
         return account;
     }
 
-    public static AccountDto mapToAccountDto(Account account){
+
+    public static AccountDto mapToAccountDto(Account account) {
+
         AccountDto accountDto = new AccountDto(
                 account.getId(),
+                account.getAccountNumber(),
                 account.getAccountHolderName(),
                 account.getBalance(),
-                account.getCustomerId(),
+
                 account.getAccountType(),
-                account.getSignatureImage()
+                account.getSignatureImage(),
+                account.getStatus()
         );
+
         return accountDto;
     }
 }

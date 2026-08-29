@@ -1,6 +1,5 @@
 package net.javaguides.banking_app.controller;
 
-
 import net.javaguides.banking_app.Dto.AccountDto;
 import net.javaguides.banking_app.Dto.TransactionDto;
 import net.javaguides.banking_app.Dto.TransferFundDto;
@@ -9,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -16,61 +16,123 @@ import java.util.Map;
 @RequestMapping("/api/accounts")
 public class AccountController {
 
-    private AccountService accountService;
+    private final AccountService accountService;
 
-    public AccountController(AccountService accountService){
+    public AccountController(AccountService accountService) {
         this.accountService = accountService;
     }
 
+
+    // ================= CREATE ACCOUNT =================
+
     @PostMapping
-    public ResponseEntity<AccountDto> addAccount(@RequestBody AccountDto accountDto){
-        return new ResponseEntity<>(accountService.createAccount(accountDto), HttpStatus.CREATED);
+    public ResponseEntity<AccountDto> addAccount(
+            @RequestBody AccountDto accountDto) {
+
+        AccountDto savedAccount =
+                accountService.createAccount(accountDto);
+
+        return new ResponseEntity<>(
+                savedAccount,
+                HttpStatus.CREATED
+        );
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<AccountDto> getAccountById(@PathVariable Long id){
-        AccountDto accountDto = accountService.getAccountById(id);
+
+    // ================= GET ACCOUNT =================
+
+    @GetMapping("/{accountNumber}")
+    public ResponseEntity<AccountDto> getAccountByNumber(
+            @PathVariable String accountNumber) {
+
+        AccountDto accountDto =
+                accountService.getAccountByNumber(accountNumber);
+
         return ResponseEntity.ok(accountDto);
     }
 
-    @PutMapping("/{id}/deposit")
-    public ResponseEntity<AccountDto> deposit(@PathVariable Long id ,@RequestBody Map<String,Double> request){
-        Double amount = request.get("amount");
-        AccountDto accountDto = accountService.deposit(id, amount );
+
+    // ================= DEPOSIT =================
+
+    @PutMapping("/{accountNumber}/deposit")
+    public ResponseEntity<AccountDto> deposit(
+            @PathVariable String accountNumber,
+            @RequestBody Map<String, BigDecimal> request) {
+
+        BigDecimal amount = request.get("amount");
+
+        AccountDto accountDto =
+                accountService.deposit(accountNumber, amount);
+
         return ResponseEntity.ok(accountDto);
     }
 
-    @PutMapping("/{id}/withdraw")
-    public ResponseEntity<AccountDto> withdraw(@PathVariable Long id, @RequestBody Map<String, Double> request){
-        Double amount = request.get("amount");
-        AccountDto accountDto = accountService.withdraw(id, amount);
+
+    // ================= WITHDRAW =================
+
+    @PutMapping("/{accountNumber}/withdraw")
+    public ResponseEntity<AccountDto> withdraw(
+            @PathVariable String accountNumber,
+            @RequestBody Map<String, BigDecimal> request) {
+
+        BigDecimal amount = request.get("amount");
+
+        AccountDto accountDto =
+                accountService.withdraw(accountNumber, amount);
+
         return ResponseEntity.ok(accountDto);
     }
+
+
+    // ================= GET ALL ACCOUNTS =================
+
     @GetMapping
-    public ResponseEntity<List<AccountDto>> getAllAccounts(){
-        List<AccountDto> accounts = accountService.getAllAccounts();
+    public ResponseEntity<List<AccountDto>> getAllAccounts() {
+
+        List<AccountDto> accounts =
+                accountService.getAllAccounts();
+
         return ResponseEntity.ok(accounts);
     }
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteAccount(@PathVariable Long id){
-        accountService.deleteAccount(id);
-        return ResponseEntity.ok("Account is deleted successfully");
+
+
+    // ================= CLOSE ACCOUNT =================
+
+    @DeleteMapping("/{accountNumber}")
+    public ResponseEntity<String> deleteAccount(
+            @PathVariable String accountNumber) {
+
+        accountService.deleteAccount(accountNumber);
+
+        return ResponseEntity.ok(
+                "Account is closed successfully"
+        );
     }
+
+
+    // ================= TRANSFER =================
 
     @PostMapping("/transfer")
-    public ResponseEntity<String> transferFund( @RequestBody TransferFundDto transferFundDto){
+    public ResponseEntity<String> transferFund(
+            @RequestBody TransferFundDto transferFundDto) {
+
         accountService.transferFunds(transferFundDto);
-        return  ResponseEntity.ok("Transfer Successfull");
+
+        return ResponseEntity.ok(
+                "Transfer successful"
+        );
     }
 
-    // Build transactions REST API
-    @GetMapping("/{id}/transactions")
-    public ResponseEntity<List<TransactionDto>> fetchTransactions(@PathVariable("id") Long accountId){
 
-        List<TransactionDto> transactions = accountService.getAccountTransactions(accountId);
+    // ================= TRANSACTIONS =================
+
+    @GetMapping("/{accountNumber}/transactions")
+    public ResponseEntity<List<TransactionDto>> fetchTransactions(
+            @PathVariable String accountNumber) {
+
+        List<TransactionDto> transactions =
+                accountService.getAccountTransactions(accountNumber);
 
         return ResponseEntity.ok(transactions);
     }
-
-
 }
