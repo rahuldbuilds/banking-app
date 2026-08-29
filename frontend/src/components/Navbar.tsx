@@ -14,7 +14,6 @@ interface NavbarProps {
   theme: 'dark' | 'light';
   toggleTheme: () => void;
   user: LoginResponse;
-  setUserRole: (role: 'ADMIN' | 'STAFF' | 'LOAN_OFFICER' | 'CUSTOMER') => void;
   isMock: boolean;
   toggleMock: () => void;
   onLogout?: () => void;
@@ -24,7 +23,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   theme,
   toggleTheme,
   user,
-  setUserRole,
   isMock,
   toggleMock,
   onLogout
@@ -102,28 +100,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Right - Role & Controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        {/* Role Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-input)', padding: '0.25rem 0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+        {/* Authenticated Role Badge (Read-Only from Backend) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-input)', padding: '0.35rem 0.65rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <ShieldCheck size={14} style={{ color: 'var(--primary)' }} />
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Role:</span>
-          <select
-            value={user.role}
-            onChange={(e) => setUserRole(e.target.value as any)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-main)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="CUSTOMER" style={{ background: 'var(--bg-card-solid)' }}>Customer</option>
-            <option value="STAFF" style={{ background: 'var(--bg-card-solid)' }}>Staff</option>
-            <option value="LOAN_OFFICER" style={{ background: 'var(--bg-card-solid)' }}>Loan Officer</option>
-            <option value="ADMIN" style={{ background: 'var(--bg-card-solid)' }}>Admin</option>
-          </select>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>{user.role}</span>
         </div>
 
         {/* Theme Toggle Button */}

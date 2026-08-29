@@ -45,10 +45,13 @@ export function App() {
     accNum?: string;
   }>({ isOpen: false, type: 'DEPOSIT' });
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   // Initial Load when User is Logged In
   const loadData = async () => {
     if (!user && !isMock) return;
     setIsLoading(true);
+    setErrorMsg(null);
     try {
       // 1. Fetch Accounts & Customers first
       const [accList, cust] = await Promise.all([
@@ -59,23 +62,31 @@ export function App() {
       setCustomers(cust);
 
       // 2. Fetch account-specific data using first account if available
-      const firstAccNum = accList[0]?.accountNumber || 'ACC100098231';
-      const firstAccId = accList[0]?.id || 101;
+      const firstAccNum = accList[0]?.accountNumber;
+      const firstAccId = accList[0]?.id;
 
-      const [txs, ben, ln] = await Promise.all([
-        apiService.getTransactions(firstAccNum).catch(() => []),
-        apiService.getBeneficiaries(firstAccId).catch(() => []),
-        apiService.getLoansForAccount(firstAccId).catch(() => [])
-      ]);
+      if (firstAccNum && firstAccId) {
+        const [txs, ben, ln] = await Promise.all([
+          apiService.getTransactions(firstAccNum).catch(() => []),
+          apiService.getBeneficiaries(firstAccId).catch(() => []),
+          apiService.getLoansForAccount(firstAccId).catch(() => [])
+        ]);
 
-      setTransactions(txs);
-      setBeneficiaries(ben);
-      setLoans(ln);
-    } catch (e) {
-      console.warn('Backend API fetch error, switching to demo mock mode', e);
-      if (!isMock) {
-        setMockMode(true);
-        setIsMock(true);
+        setTransactions(txs);
+        setBeneficiaries(ben);
+        setLoans(ln);
+      } else {
+        setTransactions([]);
+        setBeneficiaries([]);
+        setLoans([]);
+      }
+    } catch (e: any) {
+      console.error('Backend API error:', e);
+      if (e.message?.includes('401') || e.message?.includes('Unauthorized')) {
+        setUser(null);
+        setErrorMsg('Session expired. Please log in again.');
+      } else {
+        setErrorMsg(e.message || 'Failed to load banking data from backend server.');
       }
     } finally {
       setIsLoading(false);
@@ -115,12 +126,6 @@ export function App() {
     const nextMock = !isMock;
     setMockMode(nextMock);
     setIsMock(nextMock);
-  };
-
-  const setUserRole = (role: 'ADMIN' | 'STAFF' | 'LOAN_OFFICER' | 'CUSTOMER') => {
-    if (user) {
-      setUser({ ...user, role });
-    }
   };
 
   // Action Handlers
@@ -199,7 +204,6 @@ export function App() {
         theme={theme}
         toggleTheme={toggleTheme}
         user={currentUser}
-        setUserRole={setUserRole}
         isMock={isMock}
         toggleMock={toggleMock}
         onLogout={handleLogout}
@@ -215,6 +219,38 @@ export function App() {
         />
 
         <main style={{ flex: 1, padding: '2rem', overflowY: 'auto', maxHeight: 'calc(100vh - 70px)' }}>
+          {errorMsg && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#f87171',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '10px',
+              marginBottom: '1.5rem',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <span>{errorMsg}</span>
+              <button
+                onClick={() => loadData()}
+                style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.8rem'
+                }}
+              >
+                Retry Request
+              </button>
+            </div>
+          )}
+
           {isLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', color: 'var(--primary)', fontWeight: 600 }}>
               Loading Banking Systems...

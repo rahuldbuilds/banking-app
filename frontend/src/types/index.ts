@@ -1,4 +1,4 @@
-export type AccountStatus = 'ACTIVE' | 'CLOSED' | 'BLOCKED' | 'PENDING';
+export type AccountStatus = 'ACTIVE' | 'FROZEN' | 'CLOSED';
 
 export interface AccountDto {
   id?: number;
@@ -25,7 +25,7 @@ export interface TransactionDto {
   id?: number;
   accountId: number | string;
   amount: number;
-  transactionType: 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER';
+  transactionType: 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER' | 'TRANSFER_IN';
   timestamp: string;
 }
 
@@ -48,7 +48,7 @@ export interface LoanDto {
   amount: number;
   interestRate: number;
   loanType: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID';
 }
 
 export interface LoginRequest {
@@ -58,7 +58,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   username: string;
-  role: 'ADMIN' | 'STAFF' | 'LOAN_OFFICER' | 'CUSTOMER';
+  role: 'ADMIN' | 'STAFF' | 'LOAN_OFFICER';
   message: string;
 }
 
