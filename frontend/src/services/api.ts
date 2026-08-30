@@ -5,7 +5,9 @@ import type {
   TransferFundDto,
   BeneficiaryDto,
   LoanDto,
-  LoginResponse
+  LoginResponse,
+  CreateUserDto,
+  UserResponseDto
 } from '../types';
 
 const API_BASE_URL = '/api';
@@ -361,5 +363,32 @@ export const apiService = {
     return await fetchJson(`${API_BASE_URL}/loans/${loanId}/approve`, {
       method: 'PUT'
     });
+  },
+
+  getAdminUsers: async (): Promise<UserResponseDto[]> => {
+    if (isMockMode) {
+      return [
+        { id: 1, username: 'admin', role: 'ADMIN', enabled: true, createdAt: new Date().toISOString() },
+        { id: 2, username: 'loan_officer_01', role: 'LOAN_OFFICER', enabled: true, createdAt: new Date().toISOString() }
+      ];
+    }
+    return await fetchJson(`${API_BASE_URL}/admin/users`);
+  },
+
+  createAdminUser: async (user: CreateUserDto): Promise<UserResponseDto> => {
+    if (isMockMode) {
+      return { id: Date.now(), username: user.username, role: user.role, enabled: true, createdAt: new Date().toISOString() };
+    }
+    return await fetchJson(`${API_BASE_URL}/admin/users`, {
+      method: 'POST',
+      body: JSON.stringify(user)
+    });
+  },
+
+  deleteAdminUser: async (id: number): Promise<string> => {
+    if (isMockMode) return 'User account deleted';
+    const res = await fetch(`${API_BASE_URL}/admin/users/${id}`, { method: 'DELETE', credentials: 'include' });
+    if (!res.ok) throw new Error(await res.text());
+    return 'User account deleted';
   }
 };

@@ -1,5 +1,13 @@
 export type AccountStatus = 'ACTIVE' | 'FROZEN' | 'CLOSED';
 
+export type UserRole =
+  | 'ADMIN'
+  | 'LOAN_OFFICER'
+  | 'CASH_DEPOSITOR'
+  | 'TRANSACTION_HANDLER'
+  | 'ACCOUNT_CREATOR'
+  | 'CUSTOMER';
+
 export interface AccountDto {
   id?: number;
   accountNumber: string;
@@ -58,12 +66,27 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   username: string;
-  role: 'ADMIN' | 'STAFF' | 'LOAN_OFFICER';
+  role: UserRole;
   message: string;
+}
+
+export interface CreateUserDto {
+  username: string;
+  password?: string;
+  role: UserRole;
+}
+
+export interface UserResponseDto {
+  id: number;
+  username: string;
+  role: UserRole;
+  enabled: boolean;
+  createdAt: string;
 }
 
 export type ViewTab =
   | 'overview'
+  | 'users'
   | 'accounts'
   | 'transfer'
   | 'beneficiaries'

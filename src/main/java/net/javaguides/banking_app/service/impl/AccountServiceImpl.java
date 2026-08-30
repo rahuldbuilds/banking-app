@@ -253,6 +253,19 @@ public class AccountServiceImpl implements AccountService {
                                         "Sender account does not exist"
                                 ));
 
+        // Ownership check for CUSTOMER role
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"))) {
+            String currentUsername = auth.getName();
+            if (fromAccount.getAccountHolderName() == null ||
+                    !fromAccount.getAccountHolderName().equalsIgnoreCase(currentUsername)) {
+                throw new AccountException(
+                        "Customers may only transfer funds from their own account!"
+                );
+            }
+        }
+
 
         // Find receiver using account number
         Account toAccount =

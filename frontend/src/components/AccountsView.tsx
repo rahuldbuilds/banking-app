@@ -11,6 +11,7 @@ import type { AccountDto } from '../types';
 
 interface AccountsViewProps {
   accounts: AccountDto[];
+  userRole?: string;
   onCreateAccount: (account: AccountDto) => Promise<void>;
   onDeleteAccount: (accountNumber: string) => Promise<void>;
   onOpenDepositModal: (accNum: string) => void;
@@ -19,6 +20,7 @@ interface AccountsViewProps {
 
 export const AccountsView: React.FC<AccountsViewProps> = ({
   accounts,
+  userRole,
   onCreateAccount,
   onDeleteAccount,
   onOpenDepositModal,
@@ -34,6 +36,10 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
+
+  const canCreateAccount = !userRole || ['ADMIN', 'ACCOUNT_CREATOR'].includes(userRole);
+  const canDepositWithdraw = !userRole || ['ADMIN', 'CASH_DEPOSITOR'].includes(userRole);
+  const canCloseAccount = !userRole || userRole === 'ADMIN';
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -112,9 +118,11 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
             Manage active savings, checking, and enterprise accounts
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-          <PlusCircle size={18} /> Open New Account
-        </button>
+        {canCreateAccount && (
+          <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+            <PlusCircle size={18} /> Open New Account
+          </button>
+        )}
       </div>
 
       {/* Grid of Accounts */}
@@ -168,32 +176,36 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
             )}
 
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <button
-                  onClick={() => onOpenDepositModal(acc.accountNumber)}
-                  style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34d399', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Deposit
-                </button>
-                <button
-                  onClick={() => onOpenWithdrawModal(acc.accountNumber)}
-                  style={{ background: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.3)', color: '#f87171', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Withdraw
-                </button>
-              </div>
+              {canDepositWithdraw ? (
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <button
+                    onClick={() => onOpenDepositModal(acc.accountNumber)}
+                    style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34d399', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Deposit
+                  </button>
+                  <button
+                    onClick={() => onOpenWithdrawModal(acc.accountNumber)}
+                    style={{ background: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.3)', color: '#f87171', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Withdraw
+                  </button>
+                </div>
+              ) : <div />}
 
-              <button
-                onClick={() => {
-                  if (confirm(`Are you sure you want to close account ${acc.accountNumber}?`)) {
-                    onDeleteAccount(acc.accountNumber);
-                  }
-                }}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: '0.35rem' }}
-                title="Close Account"
-              >
-                <Trash2 size={16} />
-              </button>
+              {canCloseAccount && (
+                <button
+                  onClick={() => {
+                    if (confirm(`Are you sure you want to close account ${acc.accountNumber}?`)) {
+                      onDeleteAccount(acc.accountNumber);
+                    }
+                  }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: '0.35rem' }}
+                  title="Close Account"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </div>
           </div>
         ))}

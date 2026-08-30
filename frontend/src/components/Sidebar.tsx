@@ -7,6 +7,7 @@ import {
   Building2,
   FileCheck2,
   History,
+  Shield,
   ArrowUpRight,
   ArrowDownLeft
 } from 'lucide-react';
@@ -28,16 +29,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onQuickWithdraw
 }) => {
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard, roles: ['ADMIN', 'STAFF', 'LOAN_OFFICER', 'CUSTOMER'] },
-    { id: 'accounts', label: 'Accounts', icon: Wallet, roles: ['ADMIN', 'STAFF', 'CUSTOMER'] },
-    { id: 'transfer', label: 'Fund Transfer', icon: Send, roles: ['ADMIN', 'STAFF', 'CUSTOMER'] },
-    { id: 'beneficiaries', label: 'Beneficiaries', icon: Users, roles: ['ADMIN', 'STAFF', 'CUSTOMER'] },
-    { id: 'loans', label: 'Loan Portal', icon: Building2, roles: ['ADMIN', 'STAFF', 'LOAN_OFFICER', 'CUSTOMER'] },
-    { id: 'customers', label: 'KYC & Customers', icon: FileCheck2, roles: ['ADMIN', 'STAFF'] },
-    { id: 'transactions', label: 'Transaction Audit', icon: History, roles: ['ADMIN', 'STAFF', 'CUSTOMER'] }
+    {
+      id: 'overview',
+      label: 'Overview',
+      icon: LayoutDashboard,
+      roles: ['ADMIN', 'LOAN_OFFICER', 'CASH_DEPOSITOR', 'TRANSACTION_HANDLER', 'ACCOUNT_CREATOR', 'CUSTOMER']
+    },
+    {
+      id: 'users',
+      label: 'User Management',
+      icon: Shield,
+      roles: ['ADMIN']
+    },
+    {
+      id: 'accounts',
+      label: 'Accounts',
+      icon: Wallet,
+      roles: ['ADMIN', 'ACCOUNT_CREATOR', 'CASH_DEPOSITOR', 'TRANSACTION_HANDLER', 'LOAN_OFFICER', 'CUSTOMER']
+    },
+    {
+      id: 'transfer',
+      label: 'Fund Transfer',
+      icon: Send,
+      roles: ['ADMIN', 'TRANSACTION_HANDLER', 'CUSTOMER']
+    },
+    {
+      id: 'beneficiaries',
+      label: 'Beneficiaries',
+      icon: Users,
+      roles: ['ADMIN', 'TRANSACTION_HANDLER', 'CUSTOMER']
+    },
+    {
+      id: 'loans',
+      label: 'Loan Portal',
+      icon: Building2,
+      roles: ['ADMIN', 'LOAN_OFFICER', 'CUSTOMER']
+    },
+    {
+      id: 'customers',
+      label: 'KYC & Customers',
+      icon: FileCheck2,
+      roles: ['ADMIN', 'ACCOUNT_CREATOR', 'LOAN_OFFICER']
+    },
+    {
+      id: 'transactions',
+      label: 'Transaction Audit',
+      icon: History,
+      roles: ['ADMIN', 'TRANSACTION_HANDLER', 'CASH_DEPOSITOR', 'CUSTOMER']
+    }
   ];
 
   const filteredItems = navItems.filter(item => item.roles.includes(userRole));
+  const showCashActions = ['ADMIN', 'CASH_DEPOSITOR'].includes(userRole);
 
   return (
     <aside style={{
@@ -95,53 +138,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Quick Action Widget Card */}
-      <div className="glass-panel" style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.03)' }}>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '0.65rem' }}>
-          Quick Cash Actions
-        </span>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={onQuickDeposit}
-            style={{
-              flex: 1,
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              color: '#34d399',
-              padding: '0.5rem',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.3rem'
-            }}
-          >
-            <ArrowDownLeft size={14} /> Deposit
-          </button>
-          <button
-            onClick={onQuickWithdraw}
-            style={{
-              flex: 1,
-              background: 'rgba(244, 63, 94, 0.15)',
-              border: '1px solid rgba(244, 63, 94, 0.3)',
-              color: '#f87171',
-              padding: '0.5rem',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.3rem'
-            }}
-          >
-            <ArrowUpRight size={14} /> Withdraw
-          </button>
+      {showCashActions && (
+        <div className="glass-panel" style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.03)' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '0.65rem' }}>
+            Quick Cash Actions
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={onQuickDeposit}
+              style={{
+                flex: 1,
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: '#34d399',
+                padding: '0.5rem',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.3rem'
+              }}
+            >
+              <ArrowDownLeft size={14} /> Deposit
+            </button>
+            <button
+              onClick={onQuickWithdraw}
+              style={{
+                flex: 1,
+                background: 'rgba(244, 63, 94, 0.15)',
+                border: '1px solid rgba(244, 63, 94, 0.3)',
+                color: '#f87171',
+                padding: '0.5rem',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.3rem'
+              }}
+            >
+              <ArrowUpRight size={14} /> Withdraw
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </aside>
   );
 };

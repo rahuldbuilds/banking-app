@@ -9,6 +9,7 @@ import { BeneficiariesView } from './components/BeneficiariesView';
 import { LoansView } from './components/LoansView';
 import { CustomerKycView } from './components/CustomerKycView';
 import { TransactionsView } from './components/TransactionsView';
+import { UserManagementView } from './components/UserManagementView';
 import { LoginView } from './components/LoginView';
 
 import { apiService, getMockMode, setMockMode } from './services/api';
@@ -19,6 +20,8 @@ import type {
   BeneficiaryDto,
   LoanDto,
   LoginResponse,
+  UserResponseDto,
+  UserRole,
   ViewTab
 } from './types';
 
@@ -36,6 +39,7 @@ export function App() {
   const [transactions, setTransactions] = useState<TransactionDto[]>([]);
   const [beneficiaries, setBeneficiaries] = useState<BeneficiaryDto[]>([]);
   const [loans, setLoans] = useState<LoanDto[]>([]);
+  const [usersList, setUsersList] = useState<UserResponseDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Modal State
@@ -53,15 +57,21 @@ export function App() {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      // 1. Fetch Accounts & Customers first
-      const [accList, cust] = await Promise.all([
-        apiService.getAllAccounts(),
-        apiService.getCustomers()
-      ]);
+      // 1. Fetch Accounts first
+      const accList = await apiService.getAllAccounts().catch(() => []);
       setAccounts(accList);
+
+      // 2. Fetch Customers if allowed
+      const cust = await apiService.getCustomers().catch(() => []);
       setCustomers(cust);
 
-      // 2. Fetch account-specific data using first account if available
+      // 3. Fetch Users list if ADMIN
+      if (user?.role === 'ADMIN' || isMock) {
+        const uList = await apiService.getAdminUsers().catch(() => []);
+        setUsersList(uList);
+      }
+
+      // 4. Fetch account-specific data using first account if available
       const firstAccNum = accList[0]?.accountNumber;
       const firstAccId = accList[0]?.id;
 
@@ -114,6 +124,7 @@ export function App() {
     setTransactions([]);
     setBeneficiaries([]);
     setLoans([]);
+    setUsersList([]);
   };
 
   const toggleTheme = () => {
@@ -187,6 +198,19 @@ export function App() {
     setCustomers(prev => [created, ...prev]);
   };
 
+  const handleCreateUser = async (username: string, password?: string, role?: UserRole) => {
+    if (!role) return;
+    await apiService.createAdminUser({ username, password, role });
+    const uList = await apiService.getAdminUsers();
+    setUsersList(uList);
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    await apiService.deleteAdminUser(id);
+    const uList = await apiService.getAdminUsers();
+    setUsersList(uList);
+  };
+
   // If unauthenticated and not forcing mock mode, show Login Screen
   if (!user && !isMock) {
     return <LoginView onLogin={handleLogin} />;
@@ -194,7 +218,7 @@ export function App() {
 
   const currentUser = user || {
     username: 'DemoUser',
-    role: 'ADMIN',
+    role: 'ADMIN' as UserRole,
     message: 'Demo Session'
   };
 
@@ -267,9 +291,18 @@ export function App() {
                 />
               )}
 
+              {activeTab === 'users' && (
+                <UserManagementView
+                  users={usersList}
+                  onCreateUser={handleCreateUser}
+                  onDeleteUser={handleDeleteUser}
+                />
+              )}
+
               {activeTab === 'accounts' && (
                 <AccountsView
                   accounts={accounts}
+                  userRole={currentUser.role}
                   onCreateAccount={handleCreateAccount}
                   onDeleteAccount={handleDeleteAccount}
                   onOpenDepositModal={(accNum) => setDepositWithdrawModal({ isOpen: true, type: 'DEPOSIT', accNum })}
@@ -308,6 +341,7 @@ export function App() {
               {activeTab === 'customers' && (
                 <CustomerKycView
                   customers={customers}
+                  userRole={currentUser.role}
                   onCreateCustomer={handleCreateCustomer}
                 />
               )}
